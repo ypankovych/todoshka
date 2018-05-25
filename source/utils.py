@@ -1,12 +1,10 @@
 from models import *
-from funcy import ignore
-from peewee import IntegrityError
+
+LAST_ITEMS = slice(None, -11, -1)
 
 
-@ignore(IntegrityError)
 def create_user(user_id):
-    user = User(user_id=user_id)
-    user.save()
+    user, created = User.get_or_create(user_id=user_id)
 
 
 def get_user(user_id):
@@ -42,13 +40,13 @@ def move_to_completed(user_id, title):
 def delete_history(user_id):
     user = get_user(user_id)
     tasks = user.deleted.select()
-    return [task.title for task in tasks][:10]
+    return [task.title for task in tasks][LAST_ITEMS]
 
 
 def complete_history(user_id):
     user = get_user(user_id)
     tasks = user.completed.select()
-    return [task.title for task in tasks][:10]
+    return [task.title for task in tasks][LAST_ITEMS]
 
 
 def get_tasks(user_id):

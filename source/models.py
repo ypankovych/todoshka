@@ -1,6 +1,13 @@
+import os
 from peewee import *
+from urllib import parse
 
-db = SqliteDatabase('tasks.db')
+url = parse.urlparse(os.environ.get('DATABASE_URL'))
+db = PostgresqlDatabase(database=url.path[1:],
+                        user=url.username,
+                        password=url.password,
+                        host=url.hostname,
+                        port=url.port)
 
 
 class BaseModel(Model):
@@ -23,7 +30,3 @@ class TaskCompleted(Task):
 
 class TaskDeleted(Task):
     author = ForeignKeyField(User, backref='deleted')
-
-
-# Run before the first start
-# db.create_tables([User, Task, TaskCompleted, TaskDeleted])

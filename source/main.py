@@ -1,3 +1,4 @@
+import os
 import utils
 from fsm import FSM
 from telebot import TeleBot
@@ -5,7 +6,7 @@ from telebot.types import (InlineKeyboardButton,
                            InlineKeyboardMarkup,
                            ReplyKeyboardMarkup)
 
-bot = TeleBot('<token>')
+bot = TeleBot(os.environ.get('token'))
 states = FSM(default='create')
 separator = '\n➖➖➖➖➖➖➖➖➖➖\n'
 
@@ -51,8 +52,8 @@ def completed_history(message):
     user_id = message.chat.id
     completed_tasks = utils.complete_history(user_id)
     if completed_tasks:
-        bot.send_message(chat_id=user_id, parse_mode='Markdown',
-                         text='*You have {} completed tasks:*\n\n{}'.format(len(completed_tasks),
+        bot.send_message(chat_id=user_id,
+                         text='You have {} completed tasks\n\n{}'.format(len(completed_tasks),
                                                                             separator.join(completed_tasks)))
     else:
         bot.send_message(user_id, 'The list is empty')
@@ -63,8 +64,8 @@ def completed_history(message):
     user_id = message.chat.id
     completed_tasks = utils.delete_history(user_id)
     if completed_tasks:
-        bot.send_message(chat_id=user_id, parse_mode='Markdown',
-                         text='*You have {} deleted tasks:*\n\n{}'.format(len(completed_tasks),
+        bot.send_message(chat_id=user_id,
+                         text='You have {} deleted tasks\n\n{}'.format(len(completed_tasks),
                                                                           separator.join(completed_tasks)))
     else:
         bot.send_message(user_id, 'The list is empty')
@@ -92,19 +93,21 @@ def handle_task(message):
 @bot.callback_query_handler(lambda call: call.data == 'done')
 @availability
 def complete(call, task):
-    user_id = call.from_user.id
-    utils.move_to_completed(user_id, task)
-    bot.answer_callback_query(call.id, 'Done')
-    bot.delete_message(user_id, call.message.message_id)
+    proceed(call, task, utils.move_to_completed)
 
 
 @bot.callback_query_handler(lambda call: call.data == 'delete')
 @availability
 def delete(call, task):
+    proceed(call, task, utils.move_to_deleted)
+
+
+def proceed(call, task, func):
     user_id = call.from_user.id
-    utils.move_to_deleted(user_id, task)
+    func(user_id, task)
     bot.answer_callback_query(call.id, 'Done')
     bot.delete_message(user_id, call.message.message_id)
+    get_all_tasks(call.message)
 
 
 @bot.callback_query_handler(lambda call: True)
@@ -128,4 +131,4 @@ def group_tasks(user_id, tasks):
 
 
 if __name__ == '__main__':
-    bot.polling()
+    bot.polling(none_stop=True)
